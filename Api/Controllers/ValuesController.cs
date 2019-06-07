@@ -12,13 +12,14 @@ namespace Api.Controllers
   [ApiController]
   public class ValuesController : ControllerBase
   {
+    private static readonly HttpClient HttpClient = new HttpClient();
+    
     // GET api/values/getFromExternal
     [HttpGet, Route("getFromExternal")]
     public async Task<IActionResult> GetFromExternal()
     {
-      using (var client = new HttpClient())
+      using(var response = await HttpClient.GetAsync("https://localhost:5001/api/externalEndpoint"))
       {
-        var response = await client.GetAsync("https://localhost:5001/api/externalEndpoint");
         if (!response.IsSuccessStatusCode)
           return StatusCode((int) response.StatusCode);
 
@@ -33,23 +34,19 @@ namespace Api.Controllers
     [HttpGet, Route("postToExternal")]
     public async Task<HttpStatusCode> PostToExternal()
     {
-      using (var client = new HttpClient())
+      var postData = new
       {
-        client.DefaultRequestHeaders.Accept.Clear();
-        client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        firstName = "Derek",
+        lastName = "Arends"
+      };
 
-        var postData = new
-        {
-          firstName = "Derek",
-          lastName = "Arends"
-        };
+      var serializedRequest = JsonConvert.SerializeObject(postData);
 
-        var serializedRequest = JsonConvert.SerializeObject(postData);
+      var requestBody = new  StringContent(serializedRequest);
+      requestBody.Headers.ContentType = new MediaTypeHeaderValue("application/json");
 
-        var requestBody = new StringContent(serializedRequest);
-        requestBody.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-
-        var response = await client.PostAsync("https://localhost:5001/api/externalEndpoint", requestBody);
+      using(var response = await HttpClient.PostAsync("https://localhost:5001/api/externalEndpoint", requestBody))
+      {
         return response.StatusCode;
       }
     }
